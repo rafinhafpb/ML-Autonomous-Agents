@@ -91,23 +91,37 @@ class Agent:
         
         if M == -1:
             possible_paths = []
+            prob_possible_paths = np.zeros((len(ooo), 4))
+            corners = [0, 5, 24, 29]
 
             s_rustle = np.array([env.P_O[s, 0, 1] for s in range(env.n_states)]) != 0
             s_rustle = [i for i, s in enumerate(s_rustle) if s]
+            s_rustle_iter = []
             p_rustle = len(s_rustle) / env.n_states
 
             s_crinkle = np.array([env.P_O[s, 1, 1] for s in range(env.n_states)]) != 0
             s_crinkle = [i for i, s in enumerate(s_crinkle) if s]
+            s_crinkle_iter = []
             p_crinkle = len(s_crinkle) / env.n_states
 
             s_both = [s for s in s_rustle if s in s_crinkle]
+            s_both_iter = []
             p_both = len(s_both) / env.n_states
 
             s_none = [s for s in range(env.n_states) if s not in s_rustle and s not in s_crinkle]
             p_none = len(s_none) / env.n_states
 
+            print('Rustle:', s_rustle)
+            print('Crinkle:', s_crinkle)
+            print('Both:', s_both)
+
             for i, o in enumerate(ooo):
                 all_paths = self.s_tree(i+1)
+                prob_a_priori = 0
+                prob_noise = 0
+                s_rustle_iter.clear()
+                s_crinkle_iter.clear()
+                s_both_iter.clear()
 
                 if i == 0:
                     for s in all_paths:
@@ -119,37 +133,47 @@ class Agent:
                         for s in all_paths:
                             if s[:-1] in possible_paths and s[-1] in s_both:
                                 possible_paths.append(s)
-                                prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_both, 5)
+                                if s[-2] not in corners:
+                                    prob_a_priori = prob[str(np.array(s[:-1]))[1:-1]] / 3
+                                    prob[str(np.array(s))[1:-1]] = prob_a_priori * env.P_S[s[-2], s[-1]]
+                                else:
+                                    prob_a_priori = prob[str(np.array(s[:-1]))[1:-1]] / 2
+                                prob_noise += prob_a_priori * env.theta[0] * env.theta[1]
 
                     elif o[0] == 1 and o[1] == 0:
                         for s in all_paths:
-                            if s[:-1] in possible_paths and s[-1] in s_rustle:
+                            if s[:-1] in possible_paths and s[-1] in s_both:
                                 possible_paths.append(s)
-                                if s[-1] in s_both:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_rustle * (1-p_crinkle), 5)
-                                else:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_rustle, 5)
+                                s_both_iter.append(s[-1])
+                                prob_noise += prob_a_priori * env.theta[0] * (1-env.theta[1])
+                            elif s[:-1] in possible_paths and s[-1] in s_rustle:
+                                possible_paths.append(s)
+                                s_rustle_iter.append(s[-1])
+                                prob_noise += prob[str(np.array(s[:-1]))[1:-1]] * env.theta[0]         
 
                     elif o[0] == 0 and o[1] == 1:
                         for s in all_paths:
-                            if s[:-1] in possible_paths and s[-1] in s_crinkle:
+                            if s[:-1] in possible_paths and s[-1] in s_both:
                                 possible_paths.append(s)
-                                if s[-1] in s_both:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_crinkle * (1-p_rustle), 5)
-                                else:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_crinkle, 5)
+                                s_both_iter.append(s[-1])
+                                prob_noise += prob_a_priori * (1-env.theta[0]) * env.theta[1]
+                            elif s[:-1] in possible_paths and s[-1] in s_crinkle:
+                                possible_paths.append(s)
+                                s_crinkle_iter.append(s[-1])
+                                prob_noise += prob_a_priori * env.theta[1]
+                                
                     else:
                         for s in all_paths:
                             if s[:-1] in possible_paths:
                                 possible_paths.append(s)
                                 if s[-1] in s_both:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_both, 5)
+                                    prob_noise += prob_a_priori * (1-env.theta[0]) * (1-env.theta[1])
                                 elif s[-1] in s_rustle:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_rustle, 5)
+                                    prob_noise += prob_a_priori * (1-env.theta[0])
                                 elif s[-1] in s_crinkle:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_crinkle, 5)
+                                    prob_noise += prob_a_priori * (1-env.theta[1])
                                 else:
-                                    prob[str(np.array(s))[1:-1]] = round(prob[str(np.array(s[:-1]))[1:-1]] * p_none, 5)
+                                    prob_noise += prob_a_priori  
 
             # Filter the paths and probabilities added in the last loop
             last_possible_paths = [s for s in possible_paths if len(s) == len(possible_paths[-1])]
@@ -196,11 +220,10 @@ class Agent:
 
         p = self.P_traj(ooo)
         prob_paths = [path for path in p.keys() if p[path] != 0]
-        prob_tiles = [int(s.split()[-1]) for s in prob_paths]
-        
-        for tile in prob_tiles:
-            P[tile] += 1 / len(prob_tiles)
 
+        for path in prob_paths:
+            P[int(path.split()[-1])] += p[path]
+        
         return P
 
     def Q(self, o): 

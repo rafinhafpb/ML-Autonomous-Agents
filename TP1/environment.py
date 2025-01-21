@@ -328,10 +328,14 @@ if __name__ == "__main__":
     ooo, sss = gen_traj(env, 5)
     fig, ax = env.render(sss, ooo)
 
-    from agent import Agent
-    agent = Agent(env)
+    # from agent import Agent
+    # agent = Agent(env)
 
-    P = agent.P_S(ooo)
+    # p = agent.P_traj(ooo)
+
+    # prob_total = sum(list(p.values()))
+
+    # P = agent.P_S(ooo)
     
     # # Filters the most probable paths
     # prob_max = max(p.values())
@@ -351,5 +355,11 @@ if __name__ == "__main__":
     # prob_max_tuile = max(P)
     # most_prob_tuiles = [s for s, prob in enumerate(P) if prob == prob_max_tuile]
 
-    print("All probable tuile(s): \n", np.reshape(np.array(P), (5, 6)))
+    # print("All probable tuile(s): \n", np.reshape(np.array(P), (5, 6)))
+    # print("Total probability: ", prob_total)
+
+    print(env.P_O[0])
+    print(env.P_O[1])
+
+
     plt.show()
