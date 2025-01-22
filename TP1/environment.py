@@ -328,38 +328,16 @@ if __name__ == "__main__":
     ooo, sss = gen_traj(env, 5)
     fig, ax = env.render(sss, ooo)
 
-    # from agent import Agent
-    # agent = Agent(env)
+    from agent import Agent
+    agent = Agent(env)
 
-    # p = agent.P_traj(ooo)
+    p = agent.P_traj(ooo)
+    P = agent.P_S(ooo)
 
-    # prob_total = sum(list(p.values()))
-
-    # P = agent.P_S(ooo)
-    
-    # # Filters the most probable paths
-    # prob_max = max(p.values())
-    # most_prob_paths = [path for path, prob in p.items() if prob == prob_max]
-
-    # prob_paths = [path for path in p.keys() if p[path] != 0]
-
-    # prob_tiles = [int(s.split()[-1]) for s in prob_paths]
-    # for tile in prob_tiles:
-    #     P[tile] += 1 / len(prob_tiles)
-
-    # # Consider the most probable paths and calculate the cumulative probability of their last tiles
-    # prob_tiles = [int(s.split()[-1]) for s in most_prob_paths]
-    # for tile in prob_tiles:
-    #     P[tile] += 1 / len(prob_tiles)
-
-    # prob_max_tuile = max(P)
-    # most_prob_tuiles = [s for s, prob in enumerate(P) if prob == prob_max_tuile]
-
-    # print("All probable tuile(s): \n", np.reshape(np.array(P), (5, 6)))
-    # print("Total probability: ", prob_total)
-
-    print(env.P_O[0])
-    print(env.P_O[1])
-
+    #print("Probabilities: ", p)
+    #print("P(S_t | o_1,...,o_t): \n", np.array(P).reshape(env.n_rows, env.n_cols))
+    prob_max_tile = max(P)
+    most_prob_tile = [s for s, prob in enumerate(P) if prob == prob_max_tile]
+    print(f"Most probable tile(s): {most_prob_tile}, probability: {prob_max_tile*100:.2f}%")
 
     plt.show()

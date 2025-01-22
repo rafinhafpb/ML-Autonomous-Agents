@@ -54,7 +54,7 @@ class Agent:
                 last_s = current_s
                 all_paths.extend(last_s)
 
-        all_paths = [s for s in all_paths if len(s) == T]
+        all_paths = np.array([s for s in all_paths if len(s) == T], dtype=int)
 
         return all_paths
 
@@ -90,99 +90,33 @@ class Agent:
         env = self.env
         
         if M == -1:
-            possible_paths = []
-            prob_possible_paths = np.zeros((len(ooo), 4))
             corners = [0, 5, 24, 29]
-
-            s_rustle = np.array([env.P_O[s, 0, 1] for s in range(env.n_states)]) != 0
-            s_rustle = [i for i, s in enumerate(s_rustle) if s]
-            s_rustle_iter = []
-            p_rustle = len(s_rustle) / env.n_states
-
-            s_crinkle = np.array([env.P_O[s, 1, 1] for s in range(env.n_states)]) != 0
-            s_crinkle = [i for i, s in enumerate(s_crinkle) if s]
-            s_crinkle_iter = []
-            p_crinkle = len(s_crinkle) / env.n_states
-
-            s_both = [s for s in s_rustle if s in s_crinkle]
-            s_both_iter = []
-            p_both = len(s_both) / env.n_states
-
-            s_none = [s for s in range(env.n_states) if s not in s_rustle and s not in s_crinkle]
-            p_none = len(s_none) / env.n_states
-
-            print('Rustle:', s_rustle)
-            print('Crinkle:', s_crinkle)
-            print('Both:', s_both)
+            sides = [1, 2, 3, 4, 6, 11, 12, 17, 18, 23, 25, 26, 27, 28]
 
             for i, o in enumerate(ooo):
+                o = np.array(o, dtype=int)
                 all_paths = self.s_tree(i+1)
-                prob_a_priori = 0
                 prob_noise = 0
-                s_rustle_iter.clear()
-                s_crinkle_iter.clear()
-                s_both_iter.clear()
 
                 if i == 0:
                     for s in all_paths:
                         if len(s) == 1:
-                            possible_paths.append(s)
                             prob[str(np.array(s))[1:-1]] = round(float(env.P_1[s]), 5)
                 else:
-                    if o[0] == 1 and o[1] == 1:
-                        for s in all_paths:
-                            if s[:-1] in possible_paths and s[-1] in s_both:
-                                possible_paths.append(s)
-                                if s[-2] not in corners:
-                                    prob_a_priori = prob[str(np.array(s[:-1]))[1:-1]] / 3
-                                    prob[str(np.array(s))[1:-1]] = prob_a_priori * env.P_S[s[-2], s[-1]]
-                                else:
-                                    prob_a_priori = prob[str(np.array(s[:-1]))[1:-1]] / 2
-                                prob_noise += prob_a_priori * env.theta[0] * env.theta[1]
-
-                    elif o[0] == 1 and o[1] == 0:
-                        for s in all_paths:
-                            if s[:-1] in possible_paths and s[-1] in s_both:
-                                possible_paths.append(s)
-                                s_both_iter.append(s[-1])
-                                prob_noise += prob_a_priori * env.theta[0] * (1-env.theta[1])
-                            elif s[:-1] in possible_paths and s[-1] in s_rustle:
-                                possible_paths.append(s)
-                                s_rustle_iter.append(s[-1])
-                                prob_noise += prob[str(np.array(s[:-1]))[1:-1]] * env.theta[0]         
-
-                    elif o[0] == 0 and o[1] == 1:
-                        for s in all_paths:
-                            if s[:-1] in possible_paths and s[-1] in s_both:
-                                possible_paths.append(s)
-                                s_both_iter.append(s[-1])
-                                prob_noise += prob_a_priori * (1-env.theta[0]) * env.theta[1]
-                            elif s[:-1] in possible_paths and s[-1] in s_crinkle:
-                                possible_paths.append(s)
-                                s_crinkle_iter.append(s[-1])
-                                prob_noise += prob_a_priori * env.theta[1]
-                                
-                    else:
-                        for s in all_paths:
-                            if s[:-1] in possible_paths:
-                                possible_paths.append(s)
-                                if s[-1] in s_both:
-                                    prob_noise += prob_a_priori * (1-env.theta[0]) * (1-env.theta[1])
-                                elif s[-1] in s_rustle:
-                                    prob_noise += prob_a_priori * (1-env.theta[0])
-                                elif s[-1] in s_crinkle:
-                                    prob_noise += prob_a_priori * (1-env.theta[1])
-                                else:
-                                    prob_noise += prob_a_priori  
+                    for s in all_paths:
+                        current_key = str(np.array(s))[1:-1]
+                        path_key = str(np.array(s[:-1]))[1:-1]
+                        if s[-2] in corners:
+                            prob_a_priori = prob[path_key] / 2
+                        elif s[-2] in sides:
+                            prob_a_priori = prob[path_key] / 3
+                        else:
+                            prob_a_priori = prob[path_key] / 4
+                        prob[current_key] = round(prob_a_priori * env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]], 5)
+                        prob_noise += prob[current_key]
 
             # Filter the paths and probabilities added in the last loop
-            last_possible_paths = [s for s in possible_paths if len(s) == len(possible_paths[-1])]
-            p = {k: v for k, v in prob.items() if len(k.split()) == len(last_possible_paths[0])}
-            
-            # Fill the missing paths with probability 0
-            for path in all_paths:
-                if str(np.array(path))[1:-1] not in p.keys():
-                    p[str(np.array(path))[1:-1]] = 0
+            p = {k: v/prob_noise for k, v in prob.items() if len(k.split()) == len(all_paths[0])}
                             
         return p
 
