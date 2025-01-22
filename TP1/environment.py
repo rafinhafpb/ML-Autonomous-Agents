@@ -334,8 +334,8 @@ if __name__ == "__main__":
     p = agent.P_traj(ooo)
     P = agent.P_S(ooo)
 
-    #print("Probabilities: ", p)
-    #print("P(S_t | o_1,...,o_t): \n", np.array(P).reshape(env.n_rows, env.n_cols))
+    # print("Probabilities: ", p)
+    # print("P(S_t | o_1,...,o_t): \n", np.array(P).reshape(env.n_rows, env.n_cols))
     prob_max_tile = max(P)
     most_prob_tile = [s for s, prob in enumerate(P) if prob == prob_max_tile]
     print(f"Most probable tile(s): {most_prob_tile}, probability: {prob_max_tile*100:.2f}%")
