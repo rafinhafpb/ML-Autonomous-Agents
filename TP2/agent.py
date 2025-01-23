@@ -121,8 +121,6 @@ class Agent:
         env = self.env
         
         if M == -1:
-            corners = [0, 5, 24, 29]
-            sides = [1, 2, 3, 4, 6, 11, 12, 17, 18, 23, 25, 26, 27, 28]
 
             for i, o in enumerate(ooo):
                 o = np.array(o, dtype=int)
@@ -137,30 +135,25 @@ class Agent:
                     for s in all_paths:
                         current_key = str(np.array(s))[1:-1]
                         path_key = str(np.array(s[:-1]))[1:-1]
-                        if s[-2] in corners:
-                            prob_a_priori = prob[path_key] / 2
-                        elif s[-2] in sides:
-                            prob_a_priori = prob[path_key] / 3
-                        else:
-                            prob_a_priori = prob[path_key] / 4
-                        prob[current_key] = round(prob_a_priori * env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]], 5)
+                        # Prior probability = probability of path to tile * probability of that tile given the path
+                        prior_prob = prob[path_key] * max(env.P_S[s[-2]])
+                        prob[current_key] = round(prior_prob * env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]], 5)
                         prob_noise += prob[current_key]
 
             # Filter the paths and probabilities added in the last loop
             p = {k: v/prob_noise for k, v in prob.items() if len(k.split()) == len(all_paths[0])}
 
         elif M > 0:
-            cumulative_sum = np.zeros(len(self.s_tree(len(ooo))))
+            cumulative_sum = np.zeros(env.n_states)
             for _ in range(M):
                 p_iter = self.P_traj(ooo)
                 cumulative_sum += np.array([v/M for v in p_iter.values()])
-            print("a")
-            
-            p = {k: v for k, v in zip(p_iter.keys(), cumulative_sum)}
 
+            p = {k: v for k, v in zip(p_iter.keys(), cumulative_sum)}
+        
         else:
-            p = {"a": 0}
-               
+            raise ValueError("'M' parameter can only be greater than 0 or -1")
+
         return p
 
         
@@ -190,12 +183,12 @@ class Agent:
             such that P[s] = P(S_t = s | o_1,...,o_t)
         '''
 
+        P = np.zeros(self.env.n_states)
+
+        if t != -1:
+            ooo = ooo[:t+1]
+
         if M == -1:
-            P = np.zeros(self.env.n_states)
-
-            if t != -1:
-                ooo = ooo[:t+1]
-
             p = self.P_traj(ooo)
             prob_paths = [path for path in p.keys() if p[path] != 0]
 
@@ -203,21 +196,15 @@ class Agent:
                 P[int(path.split()[-1])] += p[path]
 
         elif M > 0:
-            P = np.zeros(self.env.n_states)
-
-            if t != -1:
-                ooo = ooo[:t+1]
-
             for _ in range(M):
                 p = self.P_traj(ooo)
                 prob_paths = [path for path in p.keys() if p[path] != 0]
 
                 for path in prob_paths:
                     P[int(path.split()[-1])] += p[path] / M
-        
+
         else:
-            ValueError.args
-            return 0
+            raise ValueError("'M' parameter can only be greater than 0 or -1")
 
         return P
 
