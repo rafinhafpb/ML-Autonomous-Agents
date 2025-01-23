@@ -237,86 +237,8 @@ class Environment():
 
         return fig, ax
 
-def s_tree(env, T):
-    '''
-        Provides all possible paths for a given sequence of observations.
-
-        Parameters
-        ----------
-
-        ooo : array_like(t, d)
-            t observations (of d dimensions each)
-
-        Returns
-        -------
-
-        all_paths : list of lists
-            all possible paths of states for the given sequence of observations
-    '''
-
-    all_paths = []
-
-    for t in range(T):
-        if t == 0:
-            first_s = [i[-1] for i in np.argwhere(env.P_1)]
-            all_paths.extend([[s] for s in first_s])
-
-        elif t == 1:
-            current_s = []
-            for s in first_s:
-                for j in range(len(np.argwhere(env.P_S[s]))):
-                    new = [s]
-                    new.append(np.argwhere(env.P_S[s])[j, -1])
-                    current_s.append(new)
-            last_s = current_s
-            all_paths.extend(last_s)
-
-        else:
-            current_s = []
-            for s in last_s:
-                for j in range(len(np.argwhere(env.P_S[s[-1]]))):
-                    new = s.copy()
-                    new.append(np.argwhere(env.P_S[s[-1]])[j, -1])
-                    current_s.append(new)
-            last_s = current_s
-            all_paths.extend(last_s)
-    # keep only paths of the longest length (last iteration)
-    all_paths = [path for path in all_paths if len(path) == T]
-
-    return all_paths
 
 if __name__ == "__main__":
-
-    def gen_traj(env, T=5):
-        ''' Generate a path with associated observations.
-
-
-            Paramaters
-            ----------
-
-            T : int
-                how long is the path
-
-            Returns
-            -------
-
-            o : (T,d)-shape array
-                sequence of observations
-            s : T-length array of states
-                sequence of tiles
-        '''
-        o = []
-        s = []
-
-        s.append(env.step()[0])
-        o.append(env.step()[1])
-
-        for i in range(T-1):
-            temp_s, temp_o = env.step(s[i])
-            s.append(temp_s)
-            o.append(temp_o)
-
-        return np.array(o), np.array(s)
 
     G = np.array([[1,3,0,2,4,1],
                   [2,1,0,3,0,3],
@@ -325,19 +247,8 @@ if __name__ == "__main__":
                   [2,0,0,0,1,1]])
 
     env = Environment(G)
-    ooo, sss = gen_traj(env, 5)
+    s, o = env.step()
+    ooo = np.array([o])
+    sss = np.array([s]).reshape(1,-1)
     fig, ax = env.render(sss, ooo)
-
-    from agent import Agent
-    agent = Agent(env)
-
-    p = agent.P_traj(ooo)
-    P = agent.P_S(ooo)
-
-    # print("Probabilities: ", p)
-    # print("P(S_t | o_1,...,o_t): \n", np.array(P).reshape(env.n_rows, env.n_cols))
-    prob_max_tile = max(P)
-    most_prob_tile = [s for s, prob in enumerate(P) if prob == prob_max_tile]
-    print(f"Most probable tile(s): {most_prob_tile}, probability: {prob_max_tile*100:.2f}%")
-
     plt.show()
