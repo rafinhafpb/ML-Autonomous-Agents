@@ -148,11 +148,23 @@ class Agent:
 
             # Filter the paths and probabilities added in the last loop
             p = {k: v/prob_noise for k, v in prob.items() if len(k.split()) == len(all_paths[0])}
-                            
+
+        elif M > 0:
+            cumulative_sum = np.zeros(len(self.s_tree(len(ooo))))
+            for _ in range(M):
+                p_iter = self.P_traj(ooo)
+                cumulative_sum += np.array([v/M for v in p_iter.values()])
+            print("a")
+            
+            p = {k: v for k, v in zip(p_iter.keys(), cumulative_sum)}
+
+        else:
+            p = {"a": 0}
+               
         return p
 
         
-    def P_S(self, ooo, t=-1): 
+    def P_S(self, ooo, t=-1, M=-1): 
         '''
         Provide P(s_t | ooo) given observations o from 1,...,T.  
 
@@ -178,17 +190,35 @@ class Agent:
             such that P[s] = P(S_t = s | o_1,...,o_t)
         '''
 
-        P = np.zeros(self.env.n_states)
+        if M == -1:
+            P = np.zeros(self.env.n_states)
 
-        if t != -1:
-            ooo = ooo[:t+1]
+            if t != -1:
+                ooo = ooo[:t+1]
 
-        p = self.P_traj(ooo)
-        prob_paths = [path for path in p.keys() if p[path] != 0]
+            p = self.P_traj(ooo)
+            prob_paths = [path for path in p.keys() if p[path] != 0]
 
-        for path in prob_paths:
-            P[int(path.split()[-1])] += p[path]
+            for path in prob_paths:
+                P[int(path.split()[-1])] += p[path]
+
+        elif M > 0:
+            P = np.zeros(self.env.n_states)
+
+            if t != -1:
+                ooo = ooo[:t+1]
+
+            for _ in range(M):
+                p = self.P_traj(ooo)
+                prob_paths = [path for path in p.keys() if p[path] != 0]
+
+                for path in prob_paths:
+                    P[int(path.split()[-1])] += p[path] / M
         
+        else:
+            ValueError.args
+            return 0
+
         return P
 
     def Q(self, o): 
@@ -208,9 +238,17 @@ class Agent:
                 such that Q[a] is the value (expected reward) of action a.
 
         '''
-        Q = np.zeros(self.env.n_states)
-        # TODO 
-        return Q
+        Q = []
+        P_S = self.P_S(o)
+        max_probability = max(P_S)
+        
+        for prob in P_S:
+            if prob == max_probability:
+                Q.append(1)
+            else:
+                Q.append(0)
+
+        return np.array(Q)
 
     def act(self, obs): 
         '''
@@ -229,7 +267,10 @@ class Agent:
             the chosen action a
         '''
 
-        a = -1
-        # TODO 
+        P_S = self.P_S(obs)
+        max_probability = max(P_S)
+        most_probable_tile = np.flatnonzero(P_S == max_probability)
+        a = np.random.choice(most_probable_tile)
+
         return a
 

@@ -258,7 +258,7 @@ def s_tree(env, T):
 
     for t in range(T):
         if t == 0:
-            first_s = [i[-1] for i in np.argwhere(env.P_1)]
+            first_s = np.flatnonzero(env.P_1)
             all_paths.extend([[s] for s in first_s])
 
         elif t == 1:
