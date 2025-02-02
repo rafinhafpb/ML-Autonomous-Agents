@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def gen_traj(env, T=5):
     ''' Generate a path with associated observations.
@@ -61,7 +62,7 @@ class Agent:
 
         for t in range(T):
             if t == 0:
-                first_s = [i[-1] for i in np.argwhere(env.P_1)]
+                first_s = np.flatnonzero(env.P_1)
                 all_paths.extend([[s] for s in first_s])
 
             elif t == 1:
@@ -129,8 +130,7 @@ class Agent:
 
                 if i == 0:
                     for s in all_paths:
-                        if len(s) == 1:
-                            prob[str(np.array(s))[1:-1]] = round(float(env.P_1[s]), 5)
+                        prob[str(np.array(s))[1:-1]] = round(float(env.P_1[s]), 5)
                 else:
                     for s in all_paths:
                         current_key = str(np.array(s))[1:-1]
@@ -144,12 +144,45 @@ class Agent:
             p = {k: v/prob_noise for k, v in prob.items() if len(k.split()) == len(all_paths[0])}
 
         elif M > 0:
-            cumulative_sum = np.zeros(env.n_states)
+            chosen_paths = []
             for _ in range(M):
-                p_iter = self.P_traj(ooo)
-                cumulative_sum += np.array([v/M for v in p_iter.values()])
+                for i, o in enumerate(ooo):
+                    o = np.array(o, dtype=int)
+                    possible_paths_conditioned = []
+                    prob_path = []
 
-            p = {k: v for k, v in zip(p_iter.keys(), cumulative_sum)}
+                    if i == 0:
+                        chosen_path = np.random.choice(np.flatnonzero(env.P_1))
+
+                    elif i == 1:
+                        for s in self.s_tree(i+1):
+                            if round(env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]], 2) != 0.0:
+                                possible_paths_conditioned.append(s)
+                                prob_path.append(env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]])
+                        prob_path = np.array(prob_path)
+                        prob_path = prob_path / sum(prob_path)
+                        chosen_path = possible_paths_conditioned[np.random.choice(range(len(possible_paths_conditioned)), p=prob_path)]
+
+                    else:
+                        possible_tiles = np.flatnonzero(env.P_S[chosen_path[-1]])
+                        for s in possible_tiles:
+                            chosen_path_raw = chosen_path.copy()
+                            if round(env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]], 2) != 0.0:
+                                possible_paths_conditioned.append(chosen_path_raw.append(s))
+                                prob_path.append(env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]])
+                                
+                        prob_path = np.array(prob_path)
+                        prob_path = prob_path / sum(prob_path)
+                        if possible_paths_conditioned:
+                            chosen_path = possible_paths_conditioned[np.random.choice(range(len(possible_paths_conditioned)), p=prob_path)]
+                        else:
+                            continue
+                    
+                chosen_paths.append(chosen_path)
+            
+            longest_path = max(chosen_paths, key=len)
+            chosen_paths = np.array([path for path in chosen_paths if len(path) == len(longest_path)])
+            p = {str(s)[1:-1]: np.count_nonzero(chosen_paths == s)/M for s in chosen_paths}
         
         else:
             raise ValueError("'M' parameter can only be greater than 0 or -1")
@@ -157,7 +190,7 @@ class Agent:
         return p
 
         
-    def P_S(self, ooo, t=-1, M=-1): 
+    def P_S(self, ooo, t=-1): 
         '''
         Provide P(s_t | ooo) given observations o from 1,...,T.  
 
@@ -188,23 +221,11 @@ class Agent:
         if t != -1:
             ooo = ooo[:t+1]
 
-        if M == -1:
-            p = self.P_traj(ooo)
-            prob_paths = [path for path in p.keys() if p[path] != 0]
+        p = self.P_traj(ooo)
+        prob_paths = [path for path in p.keys() if p[path] != 0]
 
-            for path in prob_paths:
-                P[int(path.split()[-1])] += p[path]
-
-        elif M > 0:
-            for _ in range(M):
-                p = self.P_traj(ooo)
-                prob_paths = [path for path in p.keys() if p[path] != 0]
-
-                for path in prob_paths:
-                    P[int(path.split()[-1])] += p[path] / M
-
-        else:
-            raise ValueError("'M' parameter can only be greater than 0 or -1")
+        for path in prob_paths:
+            P[int(path.split()[-1])] += p[path]
 
         return P
 
@@ -261,3 +282,35 @@ class Agent:
 
         return a
 
+if __name__ == '__main__':
+    
+    from environment import Environment
+
+    # Instantiate the environment
+    G = np.array([[1,3,0,2,4,1],
+                [2,1,0,3,0,3],
+                [4,0,3,0,2,0],
+                [3,1,2,3,0,4],
+                [2,0,0,0,1,1]])
+    # The fps flag allows for false positives (make sure you have the recent version of envioronment.py)
+    env = Environment(G,fps=True)
+
+    # Generate a trajectory
+    ooo, sss = gen_traj(env,10)
+
+    # Instantiate your agent
+    agent = Agent(env)
+
+    # Use your new implementation, by specifying M>0
+    P_joint = agent.P_traj(ooo, M=20)
+
+    # Create fig
+    plt.figure()
+    plt.bar(list(P_joint.keys()), list(P_joint.values()))
+    plt.xlabel(r"$\mathbf{s}$")
+    plt.ylabel(r"$p(\mathbf{s}|\mathbf{o})$")
+    plt.xticks(rotation=45, ha='right')
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
