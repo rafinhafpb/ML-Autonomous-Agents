@@ -119,6 +119,7 @@ class Agent:
             the string representation of np.array([1,2,3,4],dtype=int) should be '1 2 3 4'. 
         '''        
         prob = {}
+        p = {}
         env = self.env
         
         if M == -1:
@@ -144,45 +145,37 @@ class Agent:
             p = {k: v/prob_noise for k, v in prob.items() if len(k.split()) == len(all_paths[0])}
 
         elif M > 0:
-            chosen_paths = []
             for _ in range(M):
                 for i, o in enumerate(ooo):
                     o = np.array(o, dtype=int)
-                    possible_paths_conditioned = []
-                    prob_path = []
 
                     if i == 0:
-                        chosen_path = np.random.choice(np.flatnonzero(env.P_1))
-
-                    elif i == 1:
-                        for s in self.s_tree(i+1):
-                            if round(env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]], 2) != 0.0:
-                                possible_paths_conditioned.append(s)
-                                prob_path.append(env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]])
-                        prob_path = np.array(prob_path)
-                        prob_path = prob_path / sum(prob_path)
-                        chosen_path = possible_paths_conditioned[np.random.choice(range(len(possible_paths_conditioned)), p=prob_path)]
+                        possible_paths = np.flatnonzero(env.P_1)
+                        chosen_path = int(np.random.choice(possible_paths))
 
                     else:
-                        possible_tiles = np.flatnonzero(env.P_S[chosen_path[-1]])
-                        for s in possible_tiles:
-                            chosen_path_raw = chosen_path.copy()
-                            if round(env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]], 2) != 0.0:
-                                possible_paths_conditioned.append(chosen_path_raw.append(s))
-                                prob_path.append(env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]])
-                                
-                        prob_path = np.array(prob_path)
-                        prob_path = prob_path / sum(prob_path)
-                        if possible_paths_conditioned:
-                            chosen_path = possible_paths_conditioned[np.random.choice(range(len(possible_paths_conditioned)), p=prob_path)]
+                        if type(chosen_path) == int:
+                            possible_tiles = np.flatnonzero(env.P_S[chosen_path])
+                            possible_paths = [[chosen_path] for _ in range(len(possible_tiles))]
                         else:
-                            continue
-                    
-                chosen_paths.append(chosen_path)
+                            possible_tiles = np.flatnonzero(env.P_S[chosen_path[-1]])
+                            possible_paths = [list(chosen_path) for _ in range(len(possible_tiles))]
+
+                        probability_tile = np.zeros(len(possible_paths))
+
+                        for j, s in enumerate(possible_tiles):
+                            probability_tile[j] = env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]]
+                            possible_paths[j].append(s)
+                        
+                        probability_tile = probability_tile/sum(probability_tile)
+                        chosen_path = possible_paths[np.random.choice(range(len(possible_paths)), p=probability_tile)]
+                
+                if str(chosen_path)[1:-1] in prob.keys():
+                    prob[str(chosen_path)[1:-1]] += probability_tile[possible_paths.index(chosen_path)]
+                else:
+                    prob[str(chosen_path)[1:-1]] = probability_tile[possible_paths.index(chosen_path)]
             
-            longest_path = max(chosen_paths, key=len)
-            chosen_paths = np.array([path for path in chosen_paths if len(path) == len(longest_path)])
-            p = {str(s)[1:-1]: np.count_nonzero(chosen_paths == s)/M for s in chosen_paths}
+            p = {k: v/sum(prob.values()) for k, v in prob.items()}
         
         else:
             raise ValueError("'M' parameter can only be greater than 0 or -1")
@@ -296,13 +289,14 @@ if __name__ == '__main__':
     env = Environment(G,fps=True)
 
     # Generate a trajectory
-    ooo, sss = gen_traj(env,10)
+    ooo, sss = gen_traj(env,6)
 
     # Instantiate your agent
     agent = Agent(env)
 
     # Use your new implementation, by specifying M>0
-    P_joint = agent.P_traj(ooo, M=20)
+    P_joint = agent.P_traj(ooo, M=50)
+    print(sss)
 
     # Create fig
     plt.figure()
