@@ -153,27 +153,33 @@ class Agent:
                         possible_paths = np.flatnonzero(env.P_1)
                         chosen_path = int(np.random.choice(possible_paths))
 
-                    else:
-                        if type(chosen_path) == int:
-                            possible_tiles = np.flatnonzero(env.P_S[chosen_path])
-                            possible_paths = [[chosen_path] for _ in range(len(possible_tiles))]
-                        else:
-                            possible_tiles = np.flatnonzero(env.P_S[chosen_path[-1]])
-                            possible_paths = [list(chosen_path) for _ in range(len(possible_tiles))]
-
-                        probability_tile = np.zeros(len(possible_paths))
+                    elif i == 1:
+                        possible_paths = self.s_tree(2)
+                        possible_tiles = np.array([path[-1] for path in possible_paths])
+                        probability_tile = np.zeros(len(possible_tiles))
 
                         for j, s in enumerate(possible_tiles):
                             probability_tile[j] = env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]]
+                        
+                        probability_tile = probability_tile/sum(probability_tile)
+                        chosen_path = possible_paths[np.random.choice(range(len(possible_paths)), p=probability_tile)]
+
+                    else:
+                        possible_tiles = np.flatnonzero(env.P_S[chosen_path[-1]])
+                        possible_paths = [list(chosen_path) for _ in range(len(possible_tiles))]
+                        probability_tile = np.zeros(len(possible_tiles))
+
+                        for j, s in enumerate(possible_tiles):
+                            probability_tile[j] = round(env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]], 5)
                             possible_paths[j].append(s)
                         
                         probability_tile = probability_tile/sum(probability_tile)
                         chosen_path = possible_paths[np.random.choice(range(len(possible_paths)), p=probability_tile)]
                 
-                if str(chosen_path)[1:-1] in prob.keys():
-                    prob[str(chosen_path)[1:-1]] += probability_tile[possible_paths.index(chosen_path)]
+                if str(np.array(chosen_path))[1:-1] in prob.keys():
+                    prob[str(np.array(chosen_path))[1:-1]] += probability_tile[possible_paths.index(chosen_path)]
                 else:
-                    prob[str(chosen_path)[1:-1]] = probability_tile[possible_paths.index(chosen_path)]
+                    prob[str(np.array(chosen_path))[1:-1]] = probability_tile[possible_paths.index(chosen_path)]
             
             p = {k: v/sum(prob.values()) for k, v in prob.items()}
         
@@ -289,14 +295,19 @@ if __name__ == '__main__':
     env = Environment(G,fps=True)
 
     # Generate a trajectory
-    ooo, sss = gen_traj(env,6)
+    ooo, sss = gen_traj(env,10)
 
     # Instantiate your agent
     agent = Agent(env)
 
     # Use your new implementation, by specifying M>0
-    P_joint = agent.P_traj(ooo, M=50)
+    P_joint = agent.P_traj(ooo, M=100)
     print(sss)
+    print(ooo)
+    try:
+        print(P_joint[str(sss)[1:-1]])
+    except:
+        pass
 
     # Create fig
     plt.figure()
