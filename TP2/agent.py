@@ -94,7 +94,7 @@ class Agent:
         '''
         Provides full conditional distribution P(SSS | ooo) where SSS and ooo are sequences of length T.
         $$
-            P( Y_1,\ldots,Y_T | o_1,\ldots,o_T )
+            P( Y_1,\ldots,Y_T | o_1,\ldots, o_T )
         $$
 
         Parameters
@@ -138,7 +138,7 @@ class Agent:
                         path_key = str(np.array(s[:-1]))[1:-1]
                         # Prior probability = probability of path to tile * probability of that tile given the path
                         prior_prob = prob[path_key] * max(env.P_S[s[-2]])
-                        prob[current_key] = round(prior_prob * env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]], 5)
+                        prob[current_key] = prior_prob * env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]]
                         prob_noise += prob[current_key]
 
             # Filter the paths and probabilities added in the last loop
