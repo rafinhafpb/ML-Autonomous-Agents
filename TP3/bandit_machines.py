@@ -12,6 +12,9 @@ class Bernoulli:
     def sample(self):
         # generate a reward from a Bernoulli arm 
         return float(np.random.rand() < self.mean)
+    
+    def name(self):
+        return "Bernoulli Arm"
 
 
 class Gaussian:
@@ -24,7 +27,10 @@ class Gaussian:
 
     def sample(self):
         # generate a reward from a Gaussian arm 
-        return self.mean + sqrt(self.variance)*np.random.randn()
+        return self.mean + np.sqrt(self.variance)*np.random.randn()
+    
+    def name(self):
+        return "Gaussian Arm"
         
 
 class Exponential:
@@ -38,6 +44,10 @@ class Exponential:
     def sample(self):
         # generate a reward from an Exponential arm 
         return -(self.mean)*np.log(np.random.rand())
+    
+    def name(self):
+        return "Exponential Arm"
+    
 
 class TruncatedExponential:
     """ Truncated Exponential Arm """
@@ -52,6 +62,9 @@ class TruncatedExponential:
     def sample(self):
         # generate a reward from an Exponential arm 
         return min(-(1/self.p)*np.log(np.random.rand()),self.trunc)
+    
+    def name(self):
+        return "Truncated Exponential Arm"
 
 
 class MixedMAB():
@@ -66,6 +79,9 @@ class MixedMAB():
     
     def rwd(self,a):
         return self.arms[a].sample()
+    
+    def name(self):
+        return "Mixed Bandit"
 
 
 class GaussianMAB():
@@ -86,6 +102,9 @@ class GaussianMAB():
         
     def render(self, info=None): 
         pass
+    
+    def name(self):
+        return "Gaussian Bandit"
 
 
 class BernoulliMAB():
@@ -103,6 +122,9 @@ class BernoulliMAB():
 
     def rwd(self,a):
         return int(np.random.rand() < self.means[a]) 
+    
+    def name(self):
+        return "Bernoulli Bandit"
 
     def render(self, info=None): 
         '''
