@@ -81,7 +81,7 @@ class MixedMAB():
         return self.arms[a].sample()
     
     def name(self):
-        return "Mixed Bandit"
+        return "Mixed Multi-Arm Bandit"
 
 
 class GaussianMAB():
@@ -104,7 +104,7 @@ class GaussianMAB():
         pass
     
     def name(self):
-        return "Gaussian Bandit"
+        return "Gaussian Multi-Arm Bandit"
 
 
 class BernoulliMAB():
