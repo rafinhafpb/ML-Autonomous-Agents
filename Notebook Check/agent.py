@@ -93,7 +93,7 @@ class Agent:
         '''
         Provides full conditional distribution P(SSS | ooo) where SSS and ooo are sequences of length T.
         $$
-            P( Y_1,\ldots,Y_T | o_1,\ldots,o_T )
+            P( Y_1,\ldots,Y_T | o_1,\ldots, o_T )
         $$
 
         Parameters
@@ -118,6 +118,7 @@ class Agent:
             the string representation of np.array([1,2,3,4],dtype=int) should be '1 2 3 4'. 
         '''        
         prob = {}
+        p = {}
         env = self.env
         
         if M == -1:
@@ -129,25 +130,65 @@ class Agent:
 
                 if i == 0:
                     for s in all_paths:
-                        if len(s) == 1:
-                            prob[str(np.array(s))[1:-1]] = round(float(env.P_1[s]), 5)
+                        prob[str(np.array(s))[1:-1]] = round(float(env.P_1[s]), 5)
                 else:
                     for s in all_paths:
                         current_key = str(np.array(s))[1:-1]
                         path_key = str(np.array(s[:-1]))[1:-1]
-                        
                         # Prior probability = probability of path to tile * probability of that tile given the path
                         prior_prob = prob[path_key] * max(env.P_S[s[-2]])
-                        prob[current_key] = round(prior_prob * env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]], 5)
+                        prob[current_key] = prior_prob * env.P_O[s[-1], 0, o[0]] * env.P_O[s[-1], 1, o[1]]
                         prob_noise += prob[current_key]
 
             # Filter the paths and probabilities added in the last loop
             p = {k: v/prob_noise for k, v in prob.items() if len(k.split()) == len(all_paths[0])}
-                            
+
+        elif M > 0:
+            for _ in range(M):
+                for i, o in enumerate(ooo):
+                    o = np.array(o, dtype=int)
+
+                    if i == 0:
+                        possible_paths = np.flatnonzero(env.P_1)
+                        chosen_path = int(np.random.choice(possible_paths))
+
+                    elif i == 1:
+                        possible_paths = self.s_tree(2)
+                        possible_tiles = np.array([path[-1] for path in possible_paths])
+                        probability_tile = np.zeros(len(possible_tiles))
+
+                        for j, s in enumerate(possible_tiles):
+                            probability_tile[j] = env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]]
+                        
+                        probability_tile = probability_tile/sum(probability_tile)
+                        chosen_path = possible_paths[np.random.choice(range(len(possible_paths)), p=probability_tile)]
+
+                    else:
+                        possible_tiles = np.flatnonzero(env.P_S[chosen_path[-1]])
+                        possible_paths = [list(chosen_path) for _ in range(len(possible_tiles))]
+                        probability_tile = np.zeros(len(possible_tiles))
+
+                        for j, s in enumerate(possible_tiles):
+                            probability_tile[j] = round(env.P_O[s, 0, o[0]] * env.P_O[s, 1, o[1]], 5)
+                            possible_paths[j].append(s)
+                        
+                        probability_tile = probability_tile/sum(probability_tile)
+                        chosen_path = possible_paths[np.random.choice(range(len(possible_paths)), p=probability_tile)]
+                
+                if str(np.array(chosen_path))[1:-1] in prob.keys():
+                    prob[str(np.array(chosen_path))[1:-1]] += probability_tile[possible_paths.index(chosen_path)]
+                else:
+                    prob[str(np.array(chosen_path))[1:-1]] = probability_tile[possible_paths.index(chosen_path)]
+            
+            p = {k: v/sum(prob.values()) for k, v in prob.items()}
+        
+        else:
+            raise ValueError("'M' parameter can only be greater than 0 or -1")
+
         return p
 
         
-    def P_S(self, ooo, t=-1, M=-1): 
+    def P_S(self, ooo, t=-1): 
         '''
         Provide P(s_t | ooo) given observations o from 1,...,T.  
 
@@ -183,7 +224,7 @@ class Agent:
 
         for path in prob_paths:
             P[int(path.split()[-1])] += p[path]
-        
+
         return P
 
     def Q(self, o): 
