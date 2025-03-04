@@ -19,7 +19,6 @@ torch
 gymnasium
 moviepy>=1.0.0                       # Required by "gym.wrappers.RecordVideo"
 swig                                 # Required for the "Car Racing" environment
-gymnasium[box2d]
 Box2D
 
 # REQUIRED DEPENDENCIES #######################################################
