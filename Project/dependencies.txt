@@ -1,0 +1,33 @@
+# This file lists all the dependencies that are required to run the project
+
+
+# PyTorch #####################################################################
+
+# Depending on your system, you may need to install PyTorch with a specific version
+# and with the appropriate CUDA version. Please refer to the official PyTorch
+# installation guide for more information: https://pytorch.org/get-started/locally/
+
+torch
+# torch --index-url https://download.pytorch.org/whl/cu124    # Linux CUDA 12.4 version
+# torch --index-url https://download.pytorch.org/whl/cpu      # Linux CPU version
+
+
+# GYMNASIUM ###################################################################
+
+# C.f. https://github.com/Farama-Foundation/Gymnasium/blob/main/pyproject.toml
+
+gymnasium
+moviepy>=1.0.0                       # Required by "gym.wrappers.RecordVideo"
+swig                                 # Required for the "Car Racing" environment
+gymnasium[box2d]
+Box2D
+
+# REQUIRED DEPENDENCIES #######################################################
+
+ipywidgets            # Required for tqdm
+jupyterlab
+matplotlib
+numpy
+pandas
+seaborn
+tqdm
