@@ -1,0 +1,33 @@
+# The paper is about reinforcement learning or bandits or otherwise obviously connected to the material of the course
+Yes
+
+# The paper contains minimal content (as specified as the minimum requirements; i.e., sufficient for you to actually write a review of)
+Yes
+
+# The paper provides a link to code that you can use and/or understand within a few minutes using your knowledge from the course
+Yes (but the code clarity and markdowns in the notebook could be improved for clarity and to facilitate result reproducibility)
+
+# The paper appears original (all material borrowed from elsewhere is unambiguously acknowledged, including references). Should usually be Yes here, unless clear evidence of plagiarism - but contact a teacher if you have doubts.
+Yes
+
+
+---
+
+
+The project consists of using Reinforcement Learning methods to train and evaluate agents to play the 2-player board game Cathedral. The techniques used for training the agents include Deep Q-Network (DQN) and Proximal Policy Optimization (PPO). The environment construction for the board game was based on a customized PettingZoo environment, while the reward function was designed by the authors. The main findings of the work involve evaluating and comparing the models regarding their best performance, as well as analyzing the impacts of learning when trained with methods such as Curriculum Learning and Representation Learning. The main challenges of the study include ensuring the models are actually learning the rules of the game, finding optimal hyperparameters for stability and good generalization in the case of the DQN agent, and developing a good strategy for self-play improvement in the case of the PPO agent.
+
+The Background section is really well-structured, and it clearly reminded me of the concepts covered in class (e.g., Monte Carlo Tree Search, Deep Q-Learning, Replay Buffer). It also provided a very good explanation of methods that we had not previously seen in class, such as Proximal Policy Optimization (PPO), Curriculum Learning, and Representation Learning.
+
+Regarding the issue pointed out in IV. Results and Discussion - Fig. 3., where the DQN model performs better at the beginning and then converges to a state where it draws every game, hyperparameter tuning may help stabilize the performance (mostly by adjusting the learning rate across episodes), but it may not completely solve the problem. Hyperparameter optimization with Optuna (Lecture 6) could be a good starting point, but they might also consider increasing the complexity of the reward function and adding a modest penalty when the model draws a game (instead of rewarding 0). The reward function could be tuned, for example, to become a weighted sum of three strategies:
+
+- Area Control Evaluation: the ratio between controlled squares and the total playable area.
+- Blocking Assessment: how well a placement blocks an opponent's move or counters a potential threat.
+- Piece Placement Quality: the already-used strategy, where the value of a piece is proportional to its size.
+
+The weights contributing to the sum could also adjust the reward magnitude based on context, such as increasing the importance of Area Control in the early game, boosting the Blocking weight in the mid-game, and emphasizing Piece Quality in endgame positions. Modifying the reward function accordingly could also improve the performance of PPO agents, which are struggling to outperform a random policy agent, indicating instability in training.
+
+I really liked the choice of this (as even pointed out by the authors) very unexplored PettingZoo environment, the board game Cathedral. Even though it includes a brief explanation of the rules in "II. Background - A. The Cathedral Game," I still felt that a bit more detail would have been helpful since I had never seen the game before. The reference to the game only provides historical context about its creation, rather than a detailed rule description. For example, I did not fully understand how the game starts (what does it mean to place a cathedral, and which player begins), or how it ends (to draw an analogy to 'terminated'/'truncated' stages in Gymnasium environments). Additionally, what are the piece formats held by the players? Do both players start with the same pieces, or is it randomized? I recommend including this reference: https://www.cathedral-game.co.nz/about-how-to-play.html or adding more details about the rules directly in the paper. A clear understanding of the rules, strategies, and constraints is crucial for defining an effective reward function and eventually developing new tuning strategies.
+
+One particular aspect I would have liked to be more familiar with is how exactly Curriculum and Representation Learning were applied to the environment itself. For Curriculum Learning (progressive training), does the board size increase over time? Conversely, for Representation Learning, what are the underlying features that can be extracted from the board state? I found these two methods particularly intriguing, but it was not entirely clear how they were applied in the Cathedral environment.
+
+Overall, the current state of the study is really well-structured, and the work done is impressive, given how much new ground was explored beyond what we covered in class. I'm genuinely intrigued and curious to see what other approaches the authors will explore to overcome the current challenges and what ultimately proved to be the most effective solution.
